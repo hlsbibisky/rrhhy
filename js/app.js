@@ -925,7 +925,8 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
   // 每个维度的标签微调偏移量（单位 px，x 右为正，y 下为正）
   const labelOffsets = {
     'feeling': { x: 0, y: -19 },        // 感受/创造力 上移
-    'responsibility': { x: 19, y: -38 }  // 责任/边界感 上移+右移
+    'responsibility': { x: -8, y: 11 },  // 责任/边界感 下移+左移
+    'focus': { x: 8, y: 0 }             // 专注/思维力 右移
   };
 
   sliceInfo.forEach(({ dim, pct, midAngle, color }) => {
