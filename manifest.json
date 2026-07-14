@@ -1,0 +1,21 @@
+{
+  "name": "日日是好日",
+  "short_name": "日日是好日",
+  "description": "每日状态记录应用",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDF6F0",
+  "theme_color": "#E8845C",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

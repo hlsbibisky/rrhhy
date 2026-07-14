@@ -5,8 +5,9 @@
 // ==================== 配置与常量 ====================
 const STORAGE_KEY = 'rrhhy_data';
 const DIMENSIONS_KEY = 'rrhhy_dimensions';
+const THEME_KEY = 'rrhhy_theme';
 
-// SVG 图标定义
+// SVG 图标定义（默认维度使用）
 const DIM_ICONS = {
   focus: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#E8845C" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="10" stroke-dasharray="1 3"/></svg>',
   subjectivity: '<svg viewBox="0 0 24 24" width="20" height="20" fill="#E8C87A" stroke="#D4A574" stroke-width="1.5"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/></svg>',
@@ -20,35 +21,56 @@ const DIM_ICONS = {
   courage: '<svg viewBox="0 0 24 24" width="20" height="20" fill="#E8845C" stroke="#D4643C" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2c0 0-4 4-4 8a4 4 0 0 0 8 0c0-4-4-8-4-8z"/><path d="M12 18c0 0-2 2-2 4h4c0-2-2-4-2-4z"/></svg>'
 };
 
-function getDimIcon(dimId) {
-  return DIM_ICONS[dimId] || '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#999" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>';
+// 可选 emoji 图标
+const EMOJI_ICONS = ['🎯','⭐','🎨','💎','🛡️','⚡','👥','🌿','😊','🔥','🌙','☀️','🎵','📚','🏃','💡','🌈','🍀','🦋'];
+
+// 默认图标
+const DEFAULT_EMOJI = '🎯';
+
+function getDimIcon(dim) {
+  // dim 可以是维度对象或维度 ID（兼容旧调用）
+  if (typeof dim === 'object' && dim !== null) {
+    // 如果维度对象有自定义 icon 字段
+    if (dim.icon) {
+      // 判断是 emoji 还是 SVG
+      if (dim.icon.startsWith('<svg') || dim.icon.startsWith('<SVG')) {
+        return dim.icon;
+      }
+      // emoji 图标
+      return '<span style="font-size:18px;line-height:1;">' + dim.icon + '</span>';
+    }
+    // 回退到默认 SVG 图标
+    return DIM_ICONS[dim.id] || '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#999" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>';
+  }
+  // 兼容旧调用：传入的是 ID 字符串
+  return DIM_ICONS[dim] || '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#999" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>';
 }
 
 const DEFAULT_DIMENSIONS = [
-  { id: 'focus', name: '专注/思维力' },
-  { id: 'subjectivity', name: '主体性' },
-  { id: 'feeling', name: '感受/创造力' },
-  { id: 'meaning', name: '意义/价值感' },
-  { id: 'responsibility', name: '责任/边界感' }
-];
-
-const OPTIONAL_DIMENSIONS = [
-  { id: 'energy', name: '精力/体力' },
-  { id: 'social', name: '社交/连接感' },
-  { id: 'peace', name: '平静/安定感' },
-  { id: 'joy', name: '喜悦/满足感' },
-  { id: 'courage', name: '勇气/行动力' }
+  { id: 'focus', name: '专注/思维力', icon: null },
+  { id: 'subjectivity', name: '主体性', icon: null },
+  { id: 'feeling', name: '感受/创造力', icon: null },
+  { id: 'meaning', name: '意义/价值感', icon: null },
+  { id: 'responsibility', name: '责任/边界感', icon: null }
 ];
 
 const RATING_LEVELS = ['很弱', '较弱', '一般', '较强', '很强'];
 const RATING_VALUES = [1, 2, 3, 4, 5];
 
 const CHART_COLORS = [
-  '#E8845C', '#F0A88C', '#D4A574', '#C9B896', '#B8A9C9',
-  '#A8C4B8', '#F5C4B0', '#E8C87A', '#9BB5CE', '#D4918B'
+  '#F4A261', '#5B9BD5', '#70B870', '#E9C46A', '#B5838D',
+  '#F4A261', '#6D9EAB', '#D4766A', '#8FB996', '#D4A574'
+];
+
+// 柔和粉彩色系（用于饼图）
+const CHART_PASTEL = [
+  '#F4A261', '#7EB5E3', '#8FCA8F', '#F0D58C', '#D4A0B0',
+  '#F4C49A', '#8EC5D0', '#E0A090', '#B5D5B8', '#E0C090'
 ];
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+const THEME_LIST = ['warm', 'cool', 'fresh'];
 
 // ==================== 应用状态 ====================
 const state = {
@@ -59,7 +81,12 @@ const state = {
   statsMonth: new Date().getMonth() + 1,
   dimensions: [],
   records: {},
-  currentRatings: {}
+  currentRatings: {},
+  selectedCalDate: null,   // {year, month, day}
+  recordDate: null,        // {year, month, day} - 当前记录的目标日期
+  theme: 'warm',
+  inlineEditIcon: DEFAULT_EMOJI,
+  noDataDate: null          // 无数据弹窗对应的日期
 };
 
 // ==================== 数据存储 ====================
@@ -83,6 +110,14 @@ function loadData() {
   } catch (e) {
     state.dimensions = JSON.parse(JSON.stringify(DEFAULT_DIMENSIONS));
   }
+
+  // 加载主题
+  try {
+    const theme = localStorage.getItem(THEME_KEY);
+    if (theme && THEME_LIST.includes(theme)) {
+      state.theme = theme;
+    }
+  } catch (e) {}
 }
 
 function saveRecords() {
@@ -116,6 +151,126 @@ function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+function isSameDate(d1, d2) {
+  if (!d1 || !d2) return false;
+  return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
+}
+
+// ==================== 主题管理 ====================
+function applyTheme(theme) {
+  state.theme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+function cycleTheme() {
+  const idx = THEME_LIST.indexOf(state.theme);
+  const next = THEME_LIST[(idx + 1) % THEME_LIST.length];
+  applyTheme(next);
+  showToast('已切换到' + (next === 'warm' ? '暖色' : next === 'cool' ? '冷色' : '清新') + '主题');
+}
+
+// ==================== 数据导出/导入 ====================
+// EmailJS 配置
+const EMAILJS_SERVICE_ID = 'service_1223';
+const EMAILJS_TEMPLATE_ID = 'template_t9vox8a';
+const EMAILJS_PUBLIC_KEY = 'n0GMaTHru_Ag-XRjk';
+
+function showEmailExportDialog() {
+  const overlay = document.getElementById('email-export-overlay');
+  const input = document.getElementById('email-input');
+  const status = document.getElementById('email-export-status');
+  input.value = '';
+  status.textContent = '';
+  overlay.classList.add('active');
+  setTimeout(() => input.focus(), 300);
+}
+
+function hideEmailExportDialog() {
+  document.getElementById('email-export-overlay').classList.remove('active');
+}
+
+function sendDataByEmail(email) {
+  const status = document.getElementById('email-export-status');
+  status.textContent = '正在发送...';
+  status.style.color = 'var(--text-light)';
+
+  const data = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    records: state.records,
+    dimensions: state.dimensions,
+    theme: state.theme
+  };
+  const dataStr = JSON.stringify(data, null, 2);
+
+  // 初始化 EmailJS
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: email,
+      subject: '日日是好日 - 数据备份',
+      message: '您的数据备份如下：\n\n' + dataStr
+    }).then(() => {
+      status.textContent = '发送成功！请检查您的邮箱。';
+      status.style.color = '#5CB85C';
+      setTimeout(hideEmailExportDialog, 2000);
+    }).catch((err) => {
+      status.textContent = '发送失败，请稍后重试。';
+      status.style.color = '#E8845C';
+      console.error('EmailJS error:', err);
+    });
+  } else {
+    // EmailJS 未加载时的降级方案：直接下载文件
+    status.textContent = '邮件服务暂不可用，已为您下载备份文件。';
+    status.style.color = 'var(--text-medium)';
+    downloadDataFile(dataStr);
+    setTimeout(hideEmailExportDialog, 2500);
+  }
+}
+
+function downloadDataFile(dataStr) {
+  const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const today = getToday();
+  a.download = `日日是好日_备份_${formatDate(today.year, today.month, today.day)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportData() {
+  showEmailExportDialog();
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.records) {
+        state.records = data.records;
+        saveRecords();
+      }
+      if (data.dimensions) {
+        state.dimensions = data.dimensions;
+        saveDimensions();
+      }
+      if (data.theme && THEME_LIST.includes(data.theme)) {
+        applyTheme(data.theme);
+      }
+      renderRecordPage();
+      showToast('数据已导入，共恢复 ' + Object.keys(data.records || {}).length + ' 条记录');
+    } catch (err) {
+      showToast('导入失败：文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+}
+
 // ==================== 页面导航 ====================
 function switchPage(pageName) {
   state.currentPage = pageName;
@@ -126,22 +281,41 @@ function switchPage(pageName) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${pageName}"]`).classList.add('active');
 
-  if (pageName === 'record') renderRecordPage();
+  if (pageName === 'record') {
+    // 如果 recordDate 未设置或不是从日历跳转来的，默认为今天
+    if (!state.recordDate) {
+      state.recordDate = getToday();
+    }
+    renderRecordPage();
+  }
   if (pageName === 'calendar') renderCalendar();
   if (pageName === 'stats') renderStats();
 }
 
 // ==================== 记录页 ====================
 function renderRecordPage() {
+  const rd = state.recordDate || getToday();
   const today = getToday();
+  const isNotToday = !isSameDate(rd, today);
+
+  // 显示日期
   document.getElementById('record-date').textContent =
-    `${today.year}年${today.month}月${today.day}日 ${getWeekdayName(today.year, today.month, today.day)}`;
+    `${rd.year}年${rd.month}月${rd.day}日 ${getWeekdayName(rd.year, rd.month, rd.day)}`;
+
+  // 补记指示器
+  const indicator = document.getElementById('record-date-indicator');
+  if (isNotToday) {
+    indicator.textContent = '补记模式';
+    indicator.style.display = 'inline-block';
+  } else {
+    indicator.style.display = 'none';
+  }
 
   renderDimensions();
   updateAddDimensionText();
 
-  const todayKey = formatDate(today.year, today.month, today.day);
-  state.currentRatings = state.records[todayKey] ? { ...state.records[todayKey] } : {};
+  const dateKey = formatDate(rd.year, rd.month, rd.day);
+  state.currentRatings = state.records[dateKey] ? { ...state.records[dateKey] } : {};
   updateRatingButtons();
 }
 
@@ -155,7 +329,7 @@ function renderDimensions() {
     card.innerHTML = `
       <div class="dimension-header">
         <div class="dimension-name" data-index="${index}">
-          <span class="dimension-icon">${getDimIcon(dim.id)}</span>
+          <span class="dimension-icon" data-index="${index}">${getDimIcon(dim)}</span>
           <span class="dim-name-text">${dim.name}</span>
           <button class="dimension-edit-btn" data-index="${index}" title="编辑名称">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -176,11 +350,11 @@ function renderDimensions() {
     container.appendChild(card);
   });
 
+  // 评分按钮事件
   container.querySelectorAll('.rating-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const dimId = btn.dataset.dim;
       const value = parseInt(btn.dataset.value);
-      // 如果已选中同一级别，则取消选中
       if (state.currentRatings[dimId] === value) {
         delete state.currentRatings[dimId];
       } else {
@@ -199,6 +373,7 @@ function renderDimensions() {
     });
   });
 
+  // 删除维度
   container.querySelectorAll('.dimension-delete').forEach(btn => {
     btn.addEventListener('click', () => {
       const index = parseInt(btn.dataset.index);
@@ -214,6 +389,19 @@ function renderDimensions() {
       updateAddDimensionText();
     });
   });
+
+  // 点击图标更换图标
+  container.querySelectorAll('.dimension-icon').forEach(iconSpan => {
+    iconSpan.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt(iconSpan.dataset.index);
+      showIconPicker(state.dimensions[index].icon || DEFAULT_EMOJI, (selectedIcon) => {
+        state.dimensions[index].icon = selectedIcon;
+        saveDimensions();
+        renderDimensions();
+      });
+    });
+  });
 }
 
 function startEditDimensionName(index, editBtn) {
@@ -221,7 +409,6 @@ function startEditDimensionName(index, editBtn) {
   const nameSpan = editBtn.parentElement.querySelector('.dim-name-text');
   const originalName = dim.name;
 
-  // 创建输入框
   const input = document.createElement('input');
   input.type = 'text';
   input.value = originalName;
@@ -269,49 +456,87 @@ function updateRatingButtons() {
 
 function updateAddDimensionText() {
   document.getElementById('add-dimension-text').textContent =
-    `添加维度（${state.dimensions.length}/10）`;
+    `添加维度状态（${state.dimensions.length}/10）`;
 }
 
-function showAddDimensionModal() {
+// ==================== 图标选择器 ====================
+function showIconPicker(currentIcon, callback) {
+  const overlay = document.getElementById('icon-picker-overlay');
+  const grid = document.getElementById('icon-picker-grid');
+  grid.innerHTML = '';
+
+  EMOJI_ICONS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'icon-picker-item';
+    if (emoji === currentIcon) {
+      btn.classList.add('selected');
+    }
+    btn.textContent = emoji;
+    btn.addEventListener('click', () => {
+      callback(emoji);
+      hideIconPicker();
+    });
+    grid.appendChild(btn);
+  });
+
+  overlay.classList.add('active');
+
+  // 点击遮罩关闭
+  overlay.onclick = function(e) {
+    if (e.target === overlay) {
+      hideIconPicker();
+    }
+  };
+}
+
+function hideIconPicker() {
+  document.getElementById('icon-picker-overlay').classList.remove('active');
+}
+
+// ==================== 内联编辑行（添加维度） ====================
+function showInlineEditRow() {
   if (state.dimensions.length >= 10) {
     showToast('最多添加10个维度');
     return;
   }
+  state.inlineEditIcon = DEFAULT_EMOJI;
+  document.getElementById('inline-icon-preview').textContent = DEFAULT_EMOJI;
+  document.getElementById('inline-name-input').value = '';
+  document.getElementById('inline-edit-row').style.display = 'flex';
+  document.getElementById('add-dimension-btn').style.display = 'none';
+  document.getElementById('inline-name-input').focus();
+}
 
-  const container = document.getElementById('add-dimension-options');
-  container.innerHTML = '';
+function hideInlineEditRow() {
+  document.getElementById('inline-edit-row').style.display = 'none';
+  document.getElementById('add-dimension-btn').style.display = 'flex';
+}
 
-  const currentIds = state.dimensions.map(d => d.id);
-  const available = OPTIONAL_DIMENSIONS.filter(d => !currentIds.includes(d.id));
-
-  if (available.length === 0) {
-    container.innerHTML = '<p style="color: var(--text-light); font-size: 14px;">没有更多可选维度了</p>';
-  } else {
-    available.forEach(dim => {
-      const btn = document.createElement('button');
-      btn.className = 'add-option-btn';
-      btn.innerHTML = `${getDimIcon(dim.id)} ${dim.name}`;
-      btn.addEventListener('click', () => {
-        state.dimensions.push({ ...dim });
-        saveDimensions();
-        renderDimensions();
-        updateAddDimensionText();
-        hideAddModal();
-      });
-      container.appendChild(btn);
-    });
+function confirmInlineAdd() {
+  const name = document.getElementById('inline-name-input').value.trim();
+  if (!name) {
+    showToast('请输入维度名称');
+    return;
   }
 
-  document.getElementById('add-modal-overlay').classList.add('active');
+  const newDim = {
+    id: 'custom_' + Date.now(),
+    name: name,
+    icon: state.inlineEditIcon
+  };
+
+  state.dimensions.push(newDim);
+  saveDimensions();
+  hideInlineEditRow();
+  renderDimensions();
+  updateAddDimensionText();
+  showToast('维度已添加');
 }
 
-function hideAddModal() {
-  document.getElementById('add-modal-overlay').classList.remove('active');
-}
-
+// ==================== 确认记录 ====================
 function confirmRecord() {
-  const today = getToday();
-  const todayKey = formatDate(today.year, today.month, today.day);
+  const rd = state.recordDate || getToday();
+  const dateKey = formatDate(rd.year, rd.month, rd.day);
 
   const ratedDims = Object.keys(state.currentRatings).filter(k => state.currentRatings[k] > 0);
   if (ratedDims.length === 0) {
@@ -319,7 +544,7 @@ function confirmRecord() {
     return;
   }
 
-  state.records[todayKey] = { ...state.currentRatings };
+  state.records[dateKey] = { ...state.currentRatings };
   saveRecords();
   showToast('记录已保存');
 }
@@ -329,11 +554,14 @@ function renderCalendar() {
   const year = state.currentYear;
   const month = state.currentMonth;
 
+  // 切换月份时重置选中日期（未选择具体日期时只显示年份）
+  state.selectedCalDate = null;
+
+  // 更新日历标题
   document.getElementById('cal-month-title').textContent = `${year}年${month}月`;
 
-  // 干支年月标题（考虑未来日期的不确定性）
-  const gzTitle = GanZhiCalendar.getMonthTitleWithUncertainty(year, month);
-  document.getElementById('cal-lunar-year').textContent = gzTitle;
+  // 更新干支标题（未选日期时只显示年份）
+  updateCalendarTitle();
 
   const grid = document.getElementById('calendar-grid');
   grid.innerHTML = '';
@@ -362,9 +590,14 @@ function renderCalendar() {
     const dateKey = formatDate(year, month, day);
     const isToday = (year === today.year && month === today.month && day === today.day);
     const hasData = !!state.records[dateKey];
+    const isSelected = state.selectedCalDate &&
+      state.selectedCalDate.year === year &&
+      state.selectedCalDate.month === month &&
+      state.selectedCalDate.day === day;
 
     if (isToday) el.classList.add('today');
     if (hasData) el.classList.add('has-data');
+    if (isSelected) el.classList.add('selected-date');
 
     // 干支日
     const ganzhiDayStr = GanZhiCalendar.getDayGanZhi(year, month, day);
@@ -375,8 +608,20 @@ function renderCalendar() {
     `;
 
     el.addEventListener('click', () => {
+      // 更新选中日期
+      state.selectedCalDate = { year: year, month: month, day: day };
+
+      // 更新选中高亮
+      grid.querySelectorAll('.cal-day').forEach(d => d.classList.remove('selected-date'));
+      el.classList.add('selected-date');
+
+      // 更新干支标题
+      updateCalendarTitle();
+
       if (hasData) {
         showDateDetail(year, month, day);
+      } else {
+        showNoDataModal(year, month, day);
       }
     });
 
@@ -384,6 +629,26 @@ function renderCalendar() {
   }
 
   renderMonthSummary(year, month);
+}
+
+function updateCalendarTitle() {
+  const year = state.currentYear;
+  const month = state.currentMonth;
+
+  if (state.selectedCalDate) {
+    // 选择了具体日期 → 始终显示完整干支年月（不做未来不确定性过滤）
+    const sd = state.selectedCalDate;
+    const gzYear = GanZhiCalendar.getGanZhiYear(sd.year, sd.month, sd.day);
+    const gzMonth = GanZhiCalendar.getGanZhiMonth(sd.year, sd.month, sd.day);
+    if (gzMonth) {
+      document.getElementById('cal-lunar-year').textContent = gzYear + '年-' + gzMonth + '月';
+    } else {
+      document.getElementById('cal-lunar-year').textContent = gzYear + '年';
+    }
+  } else {
+    // 未选择具体日期 → 不显示干支副标题
+    document.getElementById('cal-lunar-year').textContent = '';
+  }
 }
 
 function renderMonthSummary(year, month) {
@@ -418,14 +683,15 @@ function renderMonthSummary(year, month) {
 
   const summaryEl = document.getElementById('month-summary-text');
   if (recordCount === 0) {
-    summaryEl.textContent = `本月记录了 0 天状态数据，暂无占比最大。`;
+    summaryEl.innerHTML = '本月记录了 0 天状态数据，暂无占比最大。';
   } else {
     const dimInfo = state.dimensions.find(d => d.id === dominantDim);
     const dimName = dimInfo ? dimInfo.name : dominantDim;
-    summaryEl.textContent = `本月记录了 ${recordCount} 天状态数据，${dimName} 占比最大。`;
+    summaryEl.innerHTML = `本月记录了 ${recordCount} 天状态数据，<strong>${dimName}</strong> 占比最大。`;
   }
 }
 
+// ==================== 日期详情弹窗（有数据） ====================
 function showDateDetail(year, month, day) {
   const dateKey = formatDate(year, month, day);
   const record = state.records[dateKey];
@@ -470,7 +736,7 @@ function showDateDetail(year, month, day) {
     ).join('');
 
     item.innerHTML = `
-      <span class="dimension-icon">${getDimIcon(dim.id)}</span>
+      <span class="dimension-icon">${getDimIcon(dim)}</span>
       <span>${dim.name}</span>
       <span class="modal-dim-dots">${dotsHtml}</span>
     `;
@@ -482,6 +748,25 @@ function showDateDetail(year, month, day) {
 
 function hideModal() {
   document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// ==================== 无数据日期弹窗（居中） ====================
+function showNoDataModal(year, month, day) {
+  state.noDataDate = { year, month, day };
+  document.getElementById('no-data-modal-title').textContent = `${year}年${month}月${day}日`;
+  document.getElementById('no-data-modal-overlay').classList.add('active');
+}
+
+function hideNoDataModal() {
+  document.getElementById('no-data-modal-overlay').classList.remove('active');
+  state.noDataDate = null;
+}
+
+function goRecordFromNoData() {
+  if (!state.noDataDate) return;
+  state.recordDate = { ...state.noDataDate };
+  hideNoDataModal();
+  switchPage('record');
 }
 
 // ==================== 统计页 ====================
@@ -532,7 +817,7 @@ function renderStats() {
     item.innerHTML = `
       <div class="stats-dim-header">
         <div class="stats-dim-name">
-          <span class="dimension-icon">${getDimIcon(dim.id)}</span>
+          <span class="dimension-icon">${getDimIcon(dim)}</span>
           <span>${dim.name}</span>
         </div>
         <div class="stats-dim-percent">${pct}%</div>
@@ -545,6 +830,20 @@ function renderStats() {
   });
 
   renderDonutChart(sortedDims, dimPercentages, recordCount);
+
+  // 数据管理按钮事件
+  const statsExportBtn = document.getElementById('stats-export-btn');
+  const statsImportBtn = document.getElementById('stats-import-btn');
+  if (statsExportBtn && !statsExportBtn._bound) {
+    statsExportBtn._bound = true;
+    statsExportBtn.addEventListener('click', exportData);
+  }
+  if (statsImportBtn && !statsImportBtn._bound) {
+    statsImportBtn._bound = true;
+    statsImportBtn.addEventListener('click', () => {
+      document.getElementById('data-import-input').click();
+    });
+  }
 }
 
 function renderDonutChart(sortedDims, dimPercentages, recordCount) {
@@ -552,57 +851,111 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
 
-  canvas.width = 240 * dpr;
-  canvas.height = 240 * dpr;
-  canvas.style.width = '240px';
-  canvas.style.height = '240px';
+  const size = 220;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
   ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, size, size);
 
-  ctx.clearRect(0, 0, 240, 240);
-
-  const cx = 120, cy = 120, outerR = 100, innerR = 65;
+  const cx = size / 2, cy = size / 2;
+  const outerR = 75, innerR = 48;
   const total = Object.values(dimPercentages).reduce((a, b) => a + b, 0);
 
-  if (total === 0) {
+  const activeDims = sortedDims.filter(d => dimPercentages[d.id] > 0);
+
+  if (total === 0 || activeDims.length === 0) {
     ctx.beginPath();
     ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
     ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
     ctx.fillStyle = '#F0EBE8';
     ctx.fill();
-  } else {
-    let startAngle = -Math.PI / 2;
-    sortedDims.forEach((dim, i) => {
-      const pct = dimPercentages[dim.id] || 0;
-      if (pct === 0) return;
-      const sliceAngle = (pct / total) * Math.PI * 2;
-      const endAngle = startAngle + sliceAngle;
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, outerR, startAngle, endAngle);
-      ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
-      ctx.closePath();
-      ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
-      ctx.fill();
-
-      startAngle = endAngle;
-    });
+    document.getElementById('chart-labels').innerHTML = '';
+    document.getElementById('chart-legend').innerHTML = '';
+    document.getElementById('chart-center-number').textContent = recordCount;
+    return;
   }
 
+  // 画饼图扇区 + 引导线
+  let startAngle = -Math.PI / 2;
+  const sliceInfo = [];
+  const labelDist = 120; // 标签距圆心的距离（与 HTML 标签定位一致）
+
+  activeDims.forEach((dim, i) => {
+    const pct = dimPercentages[dim.id] || 0;
+    const sliceAngle = (pct / total) * Math.PI * 2;
+    const endAngle = startAngle + sliceAngle;
+    const midAngle = startAngle + sliceAngle / 2;
+    const color = CHART_PASTEL[i % CHART_PASTEL.length];
+
+    // 画扇区
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, startAngle, endAngle);
+    ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // 画引导线：从扇区边缘 → 向外延伸 → 水平到标签位置
+    const edgeX = cx + Math.cos(midAngle) * outerR;
+    const edgeY = cy + Math.sin(midAngle) * outerR;
+    const elbowX = cx + Math.cos(midAngle) * (outerR + 14);
+    const elbowY = cy + Math.sin(midAngle) * (outerR + 14);
+    const isRight = midAngle > -Math.PI / 2 && midAngle < Math.PI / 2;
+    const endX = cx + Math.cos(midAngle) * labelDist + (isRight ? 4 : -4);
+    const endY = elbowY;
+
+    ctx.beginPath();
+    ctx.moveTo(edgeX, edgeY);
+    ctx.lineTo(elbowX, elbowY);
+    ctx.lineTo(endX, endY);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    sliceInfo.push({ dim, pct, midAngle, color });
+    startAngle = endAngle;
+  });
+
+  // 用 HTML 元素创建外侧标签
+  const labelsContainer = document.getElementById('chart-labels');
+  labelsContainer.innerHTML = '';
+
+  // 每个维度的标签微调偏移量（单位 px，x 右为正，y 下为正）
+  const labelOffsets = {
+    'feeling': { x: 0, y: -19 },        // 感受/创造力 上移
+    'responsibility': { x: 19, y: -38 }  // 责任/边界感 上移+右移
+  };
+
+  sliceInfo.forEach(({ dim, pct, midAngle, color }) => {
+    const label = document.createElement('div');
+    label.className = 'chart-label';
+
+    const offset = labelOffsets[dim.id] || { x: 0, y: 0 };
+    const lx = Math.cos(midAngle) * labelDist + offset.x;
+    const ly = Math.sin(midAngle) * labelDist + offset.y;
+
+    const isRight = midAngle > -Math.PI / 2 && midAngle < Math.PI / 2;
+
+    // 以 canvas 中心为原点，用 calc 定位
+    label.style.left = `calc(50% + ${lx}px)`;
+    label.style.top = `calc(50% + ${ly}px)`;
+    label.style.transform = `translate(${isRight ? '0' : '-100%'}, -50%)`;
+
+    label.innerHTML = `
+      <span class="chart-label-pct" style="color: ${color}">${pct}%</span>
+      <span class="chart-label-name" style="color: ${color}">${dim.name}</span>
+    `;
+
+    labelsContainer.appendChild(label);
+  });
+
+  // 中心文字
   document.getElementById('chart-center-number').textContent = recordCount;
 
-  const legendContainer = document.getElementById('chart-legend');
-  legendContainer.innerHTML = '';
-  sortedDims.forEach((dim, i) => {
-    const pct = dimPercentages[dim.id] || 0;
-    if (pct === 0) return;
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `
-      <span class="legend-dot" style="background: ${CHART_COLORS[i % CHART_COLORS.length]}"></span>
-      <span>${dim.name} ${pct}%</span>
-    `;
-    legendContainer.appendChild(item);
-  });
+  // 移除底部图例
+  document.getElementById('chart-legend').innerHTML = '';
 }
 
 // ==================== Toast 提示 ====================
@@ -645,30 +998,66 @@ function showToast(message) {
 
 // ==================== 事件绑定 ====================
 function initEvents() {
+  // 底部导航
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       switchPage(item.dataset.page);
     });
   });
 
+  // 确认记录
   document.getElementById('confirm-btn').addEventListener('click', confirmRecord);
-  document.getElementById('add-dimension-btn').addEventListener('click', showAddDimensionModal);
-  document.getElementById('add-modal-close').addEventListener('click', hideAddModal);
-  document.getElementById('modal-close').addEventListener('click', hideModal);
 
+  // 添加维度按钮 -> 显示内联编辑行
+  document.getElementById('add-dimension-btn').addEventListener('click', showInlineEditRow);
+
+  // 内联编辑行按钮
+  document.getElementById('inline-icon-picker-btn').addEventListener('click', () => {
+    showIconPicker(state.inlineEditIcon, (selectedIcon) => {
+      state.inlineEditIcon = selectedIcon;
+      document.getElementById('inline-icon-preview').textContent = selectedIcon;
+    });
+  });
+
+  document.getElementById('inline-confirm-btn').addEventListener('click', confirmInlineAdd);
+  document.getElementById('inline-cancel-btn').addEventListener('click', hideInlineEditRow);
+
+  // 内联输入框回车确认
+  document.getElementById('inline-name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmInlineAdd();
+    } else if (e.key === 'Escape') {
+      hideInlineEditRow();
+    }
+  });
+
+  // 日期详情弹窗关闭
+  document.getElementById('modal-close').addEventListener('click', hideModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) hideModal();
   });
-  document.getElementById('add-modal-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) hideAddModal();
+
+  // 无数据弹窗按钮
+  document.getElementById('no-data-go-record').addEventListener('click', goRecordFromNoData);
+  document.getElementById('no-data-close').addEventListener('click', hideNoDataModal);
+  document.getElementById('no-data-modal-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideNoDataModal();
   });
 
+  // 图标选择器关闭（点击遮罩）
+  document.getElementById('icon-picker-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideIconPicker();
+  });
+
+  // 月历导航
   document.getElementById('cal-prev').addEventListener('click', () => {
     state.currentMonth--;
     if (state.currentMonth < 1) {
       state.currentMonth = 12;
       state.currentYear--;
     }
+    // 如果选中日期不在新月，不重置，保留原选中
     renderCalendar();
   });
 
@@ -681,6 +1070,7 @@ function initEvents() {
     renderCalendar();
   });
 
+  // 统计页导航
   document.getElementById('stats-prev').addEventListener('click', () => {
     state.statsMonth--;
     if (state.statsMonth < 1) {
@@ -698,12 +1088,47 @@ function initEvents() {
     }
     renderStats();
   });
+
+  // 主题切换
+  document.getElementById('theme-switcher-btn').addEventListener('click', cycleTheme);
+
+  // 数据导出
+  document.getElementById('data-export-btn').addEventListener('click', exportData);
+
+  // 邮件导出弹窗
+  document.getElementById('email-send-btn').addEventListener('click', () => {
+    const email = document.getElementById('email-input').value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('email-export-status').textContent = '请输入有效的邮箱地址';
+      document.getElementById('email-export-status').style.color = '#E8845C';
+      return;
+    }
+    sendDataByEmail(email);
+  });
+
+  document.getElementById('email-cancel-btn').addEventListener('click', hideEmailExportDialog);
+
+  document.getElementById('email-export-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideEmailExportDialog();
+  });
+
+  document.getElementById('data-import-input').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      importData(e.target.files[0]);
+      e.target.value = '';
+    }
+  });
 }
 
 // ==================== 初始化 ====================
 function init() {
   loadData();
+  applyTheme(state.theme);
   initEvents();
+
+  // 初始化 recordDate 为今天
+  state.recordDate = getToday();
+
   renderRecordPage();
 }
 

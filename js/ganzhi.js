@@ -235,14 +235,16 @@ const GanZhiCalendar = (() => {
   }
 
   // 获取某月的干支标题（考虑不确定性）
-  function getMonthTitleWithUncertainty(year, month) {
+  // 格式: "丙午年-乙未月"，基于选定日期而非1号
+  function getMonthTitleWithUncertainty(year, month, day) {
+    day = day || 1;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const gzYear = getGanZhiYear(year, month, 1);
+    const gzYear = getGanZhiYear(year, month, day);
 
-    // 先确定该月1日所在的干支月及其起始节气
-    const firstDay = new Date(year, month - 1, 1);
+    // 先确定该日期所在的干支月及其起始节气
+    const targetDate = new Date(year, month - 1, day);
 
     // 收集所有相关节气的日期
     const jieDates = [];
@@ -260,10 +262,10 @@ const GanZhiCalendar = (() => {
     }
     jieDates.sort((a, b) => a.date - b.date);
 
-    // 找到firstDay所在区间的起始节气
+    // 找到targetDate所在区间的起始节气
     let definingJie = null;
     for (let i = jieDates.length - 1; i >= 0; i--) {
-      if (jieDates[i].date <= firstDay) {
+      if (jieDates[i].date <= targetDate) {
         definingJie = jieDates[i];
         break;
       }
@@ -291,10 +293,10 @@ const GanZhiCalendar = (() => {
       return gzYear + '年';
     }
 
-    // 月也确定，显示完整干支年月
-    const gzMonth = getGanZhiMonth(year, month, 1);
+    // 月也确定，显示完整干支年月（新格式：丙午年-乙未月）
+    const gzMonth = getGanZhiMonth(year, month, day);
     if (gzMonth) {
-      return gzYear + gzMonth + '月';
+      return gzYear + '年-' + gzMonth + '月';
     }
     return gzYear + '年';
   }
