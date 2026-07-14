@@ -149,6 +149,16 @@ html, body {
   height: 14px;
 }
 
+/* 有备注时备注图标高亮 */
+.dimension-note-btn.has-note {
+  color: var(--primary);
+}
+
+.dimension-note-btn.has-note svg {
+  fill: var(--primary);
+  fill-opacity: 0.15;
+}
+
 /* 备注弹窗 */
 .note-textarea {
   width: 100%;

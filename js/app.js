@@ -293,7 +293,12 @@ function renderDimensions() {
   const container = document.getElementById('dimensions-list');
   container.innerHTML = '';
 
+  const rd = state.recordDate || getToday();
+  const dateKey = formatDate(rd.year, rd.month, rd.day);
+  const dateNotes = state.notes[dateKey] || {};
+
   state.dimensions.forEach((dim, index) => {
+    const hasNote = !!dateNotes[dim.id];
     const card = document.createElement('div');
     card.className = 'dimension-card';
     card.innerHTML = `
@@ -306,7 +311,7 @@ function renderDimensions() {
           </button>
         </div>
         <div class="dimension-actions">
-          <button class="dimension-note-btn" data-index="${index}" title="添加备注">
+          <button class="dimension-note-btn ${hasNote ? 'has-note' : ''}" data-index="${index}" title="${hasNote ? '查看/修改备注' : '添加备注'}">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </button>
           <button class="dimension-delete" data-index="${index}" title="删除维度">&#x1F5D1;</button>
@@ -711,6 +716,13 @@ function showDateDetail(year, month, day) {
   } else {
     summaryText = '各维度表现均衡。';
   }
+
+  // 检查是否有备注
+  const dateNotes = state.notes[dateKey] || {};
+  const noteDims = state.dimensions.filter(dim => dateNotes[dim.id]);
+  if (noteDims.length > 0) {
+    summaryText += `（${noteDims.map(d => d.name).join('、')}有备注记录）`;
+  }
   document.getElementById('modal-summary').textContent = summaryText;
 
   const dimContainer = document.getElementById('modal-dimensions');
@@ -759,8 +771,12 @@ function showNoteModal(dimIndex) {
   currentNoteDimId = dim.id;
   document.getElementById('note-modal-title').textContent = `${dim.name} - 备注`;
   
+  const rd = state.recordDate || getToday();
+  const dateKey = formatDate(rd.year, rd.month, rd.day);
+  const dateNotes = state.notes[dateKey] || {};
+  
   const textarea = document.getElementById('note-textarea');
-  textarea.value = state.notes[dim.id] || '';
+  textarea.value = dateNotes[dim.id] || '';
   updateNoteCharCount();
   
   document.getElementById('note-modal-overlay').classList.add('active');
@@ -775,18 +791,29 @@ function hideNoteModal() {
 function saveNote() {
   if (!currentNoteDimId) return;
   
+  const rd = state.recordDate || getToday();
+  const dateKey = formatDate(rd.year, rd.month, rd.day);
+  
+  if (!state.notes[dateKey]) {
+    state.notes[dateKey] = {};
+  }
+  
   const textarea = document.getElementById('note-textarea');
   const content = textarea.value.trim();
   
   if (content) {
-    state.notes[currentNoteDimId] = content;
+    state.notes[dateKey][currentNoteDimId] = content;
   } else {
-    delete state.notes[currentNoteDimId];
+    delete state.notes[dateKey][currentNoteDimId];
+    if (Object.keys(state.notes[dateKey]).length === 0) {
+      delete state.notes[dateKey];
+    }
   }
   
   saveNotes();
   hideNoteModal();
   showToast('备注已保存');
+  renderDimensions();
 }
 
 function updateNoteCharCount() {
