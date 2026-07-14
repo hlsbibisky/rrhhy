@@ -862,10 +862,17 @@ html, body {
   position: absolute;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 2px;
   pointer-events: auto;
   white-space: nowrap;
+}
+
+.chart-label.align-right {
+  align-items: flex-end;
+}
+
+.chart-label.align-left {
+  align-items: flex-start;
 }
 
 .chart-label-pct {

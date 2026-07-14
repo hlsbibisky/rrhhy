@@ -171,14 +171,6 @@ function cycleTheme() {
 }
 
 // ==================== 数据导出/导入 ====================
-function showExportConfirm() {
-  document.getElementById('export-confirm-overlay').classList.add('active');
-}
-
-function hideExportConfirm() {
-  document.getElementById('export-confirm-overlay').classList.remove('active');
-}
-
 function downloadDataFile() {
   const data = {
     version: 1,
@@ -202,7 +194,7 @@ function downloadDataFile() {
 }
 
 function exportData() {
-  showExportConfirm();
+  downloadDataFile();
 }
 
 function importData(file) {
@@ -901,7 +893,7 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
 
   sliceInfo.forEach(({ dim, pct, color, isRight, labelOffsetX, labelOffsetY }) => {
     const label = document.createElement('div');
-    label.className = 'chart-label';
+    label.className = 'chart-label ' + (isRight ? 'align-left' : 'align-right');
 
     label.style.left = `calc(50% + ${labelOffsetX}px)`;
     label.style.top = `calc(50% + ${labelOffsetY}px)`;
@@ -1057,18 +1049,7 @@ function initEvents() {
   // 主题切换
   document.getElementById('theme-switcher-btn').addEventListener('click', cycleTheme);
 
-  // 导出确认弹窗
-  document.getElementById('export-confirm-btn').addEventListener('click', () => {
-    hideExportConfirm();
-    downloadDataFile();
-  });
-
-  document.getElementById('export-cancel-btn').addEventListener('click', hideExportConfirm);
-
-  document.getElementById('export-confirm-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) hideExportConfirm();
-  });
-
+  // 数据导入
   document.getElementById('data-import-input').addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
       importData(e.target.files[0]);
