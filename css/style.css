@@ -134,7 +134,34 @@ html, body {
   right: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+
+.header-confirm-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(232, 132, 92, 0.3);
+}
+
+[data-theme="cool"] .header-confirm-btn {
+  box-shadow: 0 2px 8px rgba(91, 141, 239, 0.3);
+}
+
+[data-theme="fresh"] .header-confirm-btn {
+  box-shadow: 0 2px 8px rgba(92, 184, 92, 0.3);
+}
+
+.header-confirm-btn:active {
+  transform: scale(0.92);
 }
 
 .theme-switcher-btn {
