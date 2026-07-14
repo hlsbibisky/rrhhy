@@ -6,6 +6,7 @@
 const STORAGE_KEY = 'rrhhy_data';
 const DIMENSIONS_KEY = 'rrhhy_dimensions';
 const THEME_KEY = 'rrhhy_theme';
+const NOTES_KEY = 'rrhhy_notes';
 
 // SVG 图标定义（默认维度使用）
 const DIM_ICONS = {
@@ -81,6 +82,7 @@ const state = {
   statsMonth: new Date().getMonth() + 1,
   dimensions: [],
   records: {},
+  notes: {},
   currentRatings: {},
   selectedCalDate: null,   // {year, month, day}
   recordDate: null,        // {year, month, day} - 当前记录的目标日期
@@ -118,6 +120,14 @@ function loadData() {
       state.theme = theme;
     }
   } catch (e) {}
+
+  // 加载备注
+  try {
+    const notes = localStorage.getItem(NOTES_KEY);
+    if (notes) {
+      state.notes = JSON.parse(notes);
+    }
+  } catch (e) {}
 }
 
 function saveRecords() {
@@ -126,6 +136,10 @@ function saveRecords() {
 
 function saveDimensions() {
   localStorage.setItem(DIMENSIONS_KEY, JSON.stringify(state.dimensions));
+}
+
+function saveNotes() {
+  localStorage.setItem(NOTES_KEY, JSON.stringify(state.notes));
 }
 
 // ==================== 工具函数 ====================
@@ -177,6 +191,7 @@ function downloadDataFile() {
     exportDate: new Date().toISOString(),
     records: state.records,
     dimensions: state.dimensions,
+    notes: state.notes,
     theme: state.theme
   };
   const dataStr = JSON.stringify(data, null, 2);
@@ -209,6 +224,10 @@ function importData(file) {
       if (data.dimensions) {
         state.dimensions = data.dimensions;
         saveDimensions();
+      }
+      if (data.notes) {
+        state.notes = data.notes;
+        saveNotes();
       }
       if (data.theme && THEME_LIST.includes(data.theme)) {
         applyTheme(data.theme);
@@ -287,6 +306,9 @@ function renderDimensions() {
           </button>
         </div>
         <div class="dimension-actions">
+          <button class="dimension-note-btn" data-index="${index}" title="添加备注">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </button>
           <button class="dimension-delete" data-index="${index}" title="删除维度">&#x1F5D1;</button>
         </div>
       </div>
@@ -338,6 +360,14 @@ function renderDimensions() {
       saveDimensions();
       renderDimensions();
       updateAddDimensionText();
+    });
+  });
+
+  // 备注按钮
+  container.querySelectorAll('.dimension-note-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.dataset.index);
+      showNoteModal(index);
     });
   });
 
@@ -719,6 +749,52 @@ function editRecordFromModal() {
   switchPage('record');
 }
 
+// ==================== 备注弹窗 ====================
+let currentNoteDimId = null;
+
+function showNoteModal(dimIndex) {
+  const dim = state.dimensions[dimIndex];
+  if (!dim) return;
+  
+  currentNoteDimId = dim.id;
+  document.getElementById('note-modal-title').textContent = `${dim.name} - 备注`;
+  
+  const textarea = document.getElementById('note-textarea');
+  textarea.value = state.notes[dim.id] || '';
+  updateNoteCharCount();
+  
+  document.getElementById('note-modal-overlay').classList.add('active');
+  setTimeout(() => textarea.focus(), 100);
+}
+
+function hideNoteModal() {
+  document.getElementById('note-modal-overlay').classList.remove('active');
+  currentNoteDimId = null;
+}
+
+function saveNote() {
+  if (!currentNoteDimId) return;
+  
+  const textarea = document.getElementById('note-textarea');
+  const content = textarea.value.trim();
+  
+  if (content) {
+    state.notes[currentNoteDimId] = content;
+  } else {
+    delete state.notes[currentNoteDimId];
+  }
+  
+  saveNotes();
+  hideNoteModal();
+  showToast('备注已保存');
+}
+
+function updateNoteCharCount() {
+  const textarea = document.getElementById('note-textarea');
+  const count = textarea.value.length;
+  document.getElementById('note-char-count').textContent = `${count}/150`;
+}
+
 // ==================== 无数据日期弹窗（居中） ====================
 function showNoDataModal(year, month, day) {
   state.noDataDate = { year, month, day };
@@ -1006,6 +1082,14 @@ function initEvents() {
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) hideModal();
   });
+
+  // 备注弹窗
+  document.getElementById('note-save-btn').addEventListener('click', saveNote);
+  document.getElementById('note-cancel-btn').addEventListener('click', hideNoteModal);
+  document.getElementById('note-modal-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideNoteModal();
+  });
+  document.getElementById('note-textarea').addEventListener('input', updateNoteCharCount);
 
   // 无数据弹窗按钮
   document.getElementById('no-data-go-record').addEventListener('click', goRecordFromNoData);

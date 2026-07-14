@@ -127,6 +127,53 @@ html, body {
   margin-top: 2px;
 }
 
+/* 备注按钮 */
+.dimension-note-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-lighter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.dimension-note-btn:hover {
+  color: var(--primary);
+}
+
+.dimension-note-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 备注弹窗 */
+.note-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1.5px solid var(--rating-bg);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--card-bg);
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.note-textarea:focus {
+  border-color: var(--primary);
+}
+
+.note-char-count {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
 /* ==================== 主题切换按钮 ==================== */
 .header-actions {
   position: absolute;
@@ -335,7 +382,7 @@ html, body {
   cursor: pointer;
   padding: 4px;
   color: var(--text-lighter);
-  font-size: 18px;
+  font-size: 14px;
 }
 
 /* ==================== 评分按钮 ==================== */

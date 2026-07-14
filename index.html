@@ -194,11 +194,26 @@
       </div>
     </div>
 
+    <!-- ==================== 备注弹窗 ==================== -->
+    <div class="modal-overlay" id="note-modal-overlay">
+      <div class="modal-content" style="border-radius: 20px; padding: 28px 24px; max-width: 360px;">
+        <h2 class="modal-title" id="note-modal-title" style="margin-bottom: 16px;">备注</h2>
+        <textarea class="note-textarea" id="note-textarea" placeholder="输入备注内容（不超过150字）" maxlength="150"></textarea>
+        <div style="text-align: right; margin-top: 8px;">
+          <span class="note-char-count" id="note-char-count">0/150</span>
+        </div>
+        <div class="no-data-modal-buttons" style="margin-top: 20px;">
+          <button class="no-data-btn-primary" id="note-save-btn">保存</button>
+          <button class="no-data-btn-secondary" id="note-cancel-btn">取消</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 隐藏的文件输入框（用于导入数据） -->
     <input type="file" id="data-import-input" accept=".json" style="display:none;">
   </div>
 
-  <script src="js/ganzhi.js?v=17"></script>
-  <script src="js/app.js?v=17"></script>
+  <script src="js/ganzhi.js?v=18"></script>
+  <script src="js/app.js?v=18"></script>
 </body>
 </html>
