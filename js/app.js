@@ -171,30 +171,15 @@ function cycleTheme() {
 }
 
 // ==================== 数据导出/导入 ====================
-// EmailJS 配置
-const EMAILJS_SERVICE_ID = 'service_1223';
-const EMAILJS_TEMPLATE_ID = 'template_t9vox8a';
-const EMAILJS_PUBLIC_KEY = 'n0GMaTHru_Ag-XRjk';
-
-function showEmailExportDialog() {
-  const overlay = document.getElementById('email-export-overlay');
-  const input = document.getElementById('email-input');
-  const status = document.getElementById('email-export-status');
-  input.value = '';
-  status.textContent = '';
-  overlay.classList.add('active');
-  setTimeout(() => input.focus(), 300);
+function showExportConfirm() {
+  document.getElementById('export-confirm-overlay').classList.add('active');
 }
 
-function hideEmailExportDialog() {
-  document.getElementById('email-export-overlay').classList.remove('active');
+function hideExportConfirm() {
+  document.getElementById('export-confirm-overlay').classList.remove('active');
 }
 
-function sendDataByEmail(email) {
-  const status = document.getElementById('email-export-status');
-  status.textContent = '正在发送邮件并下载数据文件...';
-  status.style.color = 'var(--text-light)';
-
+function downloadDataFile() {
   const data = {
     version: 1,
     exportDate: new Date().toISOString(),
@@ -203,38 +188,6 @@ function sendDataByEmail(email) {
     theme: state.theme
   };
   const dataStr = JSON.stringify(data, null, 2);
-
-  // 同时下载数据文件，确保用户一定能拿到数据
-  downloadDataFile(dataStr);
-
-  // 尝试通过 EmailJS 发送邮件
-  if (typeof emailjs !== 'undefined') {
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: email,
-      email: email,
-      reply_to: email,
-      subject: '日日是好日 - 数据备份',
-      message: '您的数据备份如下：\n\n' + dataStr,
-      data: dataStr
-    }).then(() => {
-      status.innerHTML = '邮件已发送至 ' + email + '，同时数据文件已下载。';
-      status.style.color = '#5CB85C';
-      setTimeout(hideEmailExportDialog, 3000);
-    }).catch((err) => {
-      console.error('EmailJS error:', err);
-      status.innerHTML = '邮件发送失败（' + (err.text || err.message || '请检查邮箱是否已验证') + '）。<br>数据文件已下载，您可以直接保存使用。';
-      status.style.color = '#E8845C';
-      setTimeout(hideEmailExportDialog, 5000);
-    });
-  } else {
-    status.innerHTML = '邮件服务未加载，数据文件已下载保存。';
-    status.style.color = 'var(--text-medium)';
-    setTimeout(hideEmailExportDialog, 3000);
-  }
-}
-
-function downloadDataFile(dataStr) {
   const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -245,10 +198,11 @@ function downloadDataFile(dataStr) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  showToast('数据已导出');
 }
 
 function exportData() {
-  showEmailExportDialog();
+  showExportConfirm();
 }
 
 function importData(file) {
@@ -1103,24 +1057,16 @@ function initEvents() {
   // 主题切换
   document.getElementById('theme-switcher-btn').addEventListener('click', cycleTheme);
 
-  // 数据导出
-  document.getElementById('data-export-btn').addEventListener('click', exportData);
-
-  // 邮件导出弹窗
-  document.getElementById('email-send-btn').addEventListener('click', () => {
-    const email = document.getElementById('email-input').value.trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      document.getElementById('email-export-status').textContent = '请输入有效的邮箱地址';
-      document.getElementById('email-export-status').style.color = '#E8845C';
-      return;
-    }
-    sendDataByEmail(email);
+  // 导出确认弹窗
+  document.getElementById('export-confirm-btn').addEventListener('click', () => {
+    hideExportConfirm();
+    downloadDataFile();
   });
 
-  document.getElementById('email-cancel-btn').addEventListener('click', hideEmailExportDialog);
+  document.getElementById('export-cancel-btn').addEventListener('click', hideExportConfirm);
 
-  document.getElementById('email-export-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) hideEmailExportDialog();
+  document.getElementById('export-confirm-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideExportConfirm();
   });
 
   document.getElementById('data-import-input').addEventListener('change', (e) => {

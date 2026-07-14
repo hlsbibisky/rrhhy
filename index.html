@@ -9,7 +9,6 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.jpg">
   <link rel="stylesheet" href="css/style.css">
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
   <!-- 页面容器 -->
@@ -24,13 +23,6 @@
           <button class="theme-switcher-btn" id="theme-switcher-btn" title="切换主题">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20.38 3.46L16 2 12 5.5 8 2 3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>
-            </svg>
-          </button>
-          <button class="theme-switcher-btn" id="data-export-btn" title="备份数据" style="margin-left:8px;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
           </button>
         </div>
@@ -202,24 +194,22 @@
     <!-- 隐藏的文件输入框（用于导入数据） -->
     <input type="file" id="data-import-input" accept=".json" style="display:none;">
 
-    <!-- ==================== 邮件导出弹窗 ==================== -->
-    <div class="modal-overlay" id="email-export-overlay">
+    <!-- ==================== 导出确认弹窗 ==================== -->
+    <div class="modal-overlay" id="export-confirm-overlay">
       <div class="modal-content" style="border-radius: 20px; padding: 28px 24px; max-width: 320px;">
-        <h2 class="modal-title" style="margin-bottom: 8px;">数据备份</h2>
-        <p style="font-size: 13px; color: var(--text-light); margin-bottom: 20px; line-height: 1.5;">
-          输入您的邮箱地址，数据将以邮件形式发送至您的邮箱，方便永久保存。
+        <h2 class="modal-title" style="margin-bottom: 12px;">是否需要导出数据？</h2>
+        <p style="font-size: 12px; color: var(--text-light); margin-bottom: 20px; line-height: 1.5;">
+          目前不支持手机操作，请使用电脑操作导出文件。
         </p>
-        <input type="email" class="email-input" id="email-input" placeholder="请输入邮箱地址" autocomplete="email">
-        <div id="email-export-status" style="font-size: 12px; margin-top: 10px; min-height: 18px;"></div>
-        <div class="no-data-modal-buttons" style="margin-top: 16px;">
-          <button class="no-data-btn-primary" id="email-send-btn">发送</button>
-          <button class="no-data-btn-secondary" id="email-cancel-btn">取消</button>
+        <div class="no-data-modal-buttons">
+          <button class="no-data-btn-primary" id="export-confirm-btn">确认导出</button>
+          <button class="no-data-btn-secondary" id="export-cancel-btn">取消</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="js/ganzhi.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/ganzhi.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
