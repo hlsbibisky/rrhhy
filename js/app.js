@@ -192,7 +192,7 @@ function hideEmailExportDialog() {
 
 function sendDataByEmail(email) {
   const status = document.getElementById('email-export-status');
-  status.textContent = '正在发送...';
+  status.textContent = '正在发送邮件并下载数据文件...';
   status.style.color = 'var(--text-light)';
 
   const data = {
@@ -204,28 +204,33 @@ function sendDataByEmail(email) {
   };
   const dataStr = JSON.stringify(data, null, 2);
 
-  // 初始化 EmailJS
+  // 同时下载数据文件，确保用户一定能拿到数据
+  downloadDataFile(dataStr);
+
+  // 尝试通过 EmailJS 发送邮件
   if (typeof emailjs !== 'undefined') {
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: email,
+      email: email,
+      reply_to: email,
       subject: '日日是好日 - 数据备份',
-      message: '您的数据备份如下：\n\n' + dataStr
+      message: '您的数据备份如下：\n\n' + dataStr,
+      data: dataStr
     }).then(() => {
-      status.textContent = '发送成功！请检查您的邮箱。';
+      status.innerHTML = '邮件已发送至 ' + email + '，同时数据文件已下载。';
       status.style.color = '#5CB85C';
-      setTimeout(hideEmailExportDialog, 2000);
+      setTimeout(hideEmailExportDialog, 3000);
     }).catch((err) => {
-      status.textContent = '发送失败，请稍后重试。';
-      status.style.color = '#E8845C';
       console.error('EmailJS error:', err);
+      status.innerHTML = '邮件发送失败（' + (err.text || err.message || '请检查邮箱是否已验证') + '）。<br>数据文件已下载，您可以直接保存使用。';
+      status.style.color = '#E8845C';
+      setTimeout(hideEmailExportDialog, 5000);
     });
   } else {
-    // EmailJS 未加载时的降级方案：直接下载文件
-    status.textContent = '邮件服务暂不可用，已为您下载备份文件。';
+    status.innerHTML = '邮件服务未加载，数据文件已下载保存。';
     status.style.color = 'var(--text-medium)';
-    downloadDataFile(dataStr);
-    setTimeout(hideEmailExportDialog, 2500);
+    setTimeout(hideEmailExportDialog, 3000);
   }
 }
 
@@ -539,8 +544,16 @@ function confirmRecord() {
   const dateKey = formatDate(rd.year, rd.month, rd.day);
 
   const ratedDims = Object.keys(state.currentRatings).filter(k => state.currentRatings[k] > 0);
+
   if (ratedDims.length === 0) {
-    showToast('请至少为一个维度评分');
+    // 所有维度都未选中 → 删除当天记录
+    if (state.records[dateKey]) {
+      delete state.records[dateKey];
+      saveRecords();
+      showToast('已取消该日期的记录');
+    } else {
+      showToast('该日期暂无记录');
+    }
     return;
   }
 
