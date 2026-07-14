@@ -747,6 +747,24 @@ html, body {
   background: var(--primary);
 }
 
+/* 有备注的日期标注 */
+.cal-day.has-note {
+  position: relative;
+}
+
+.cal-day.has-note .day-number {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.day-note-icon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  line-height: 1;
+}
+
 /* 选中日期高亮 */
 .cal-day.selected-date {
   background: var(--primary);

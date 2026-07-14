@@ -584,6 +584,8 @@ function renderCalendar() {
     const dateKey = formatDate(year, month, day);
     const isToday = (year === today.year && month === today.month && day === today.day);
     const hasData = !!state.records[dateKey];
+    const dateNotes = state.notes[dateKey] || {};
+    const hasNote = Object.keys(dateNotes).length > 0;
     const isSelected = state.selectedCalDate &&
       state.selectedCalDate.year === year &&
       state.selectedCalDate.month === month &&
@@ -591,6 +593,7 @@ function renderCalendar() {
 
     if (isToday) el.classList.add('today');
     if (hasData) el.classList.add('has-data');
+    if (hasNote) el.classList.add('has-note');
     if (isSelected) el.classList.add('selected-date');
 
     // 干支日
@@ -599,6 +602,7 @@ function renderCalendar() {
     el.innerHTML = `
       <span class="day-number">${day}</span>
       <span class="day-lunar">${ganzhiDayStr}</span>
+      ${hasNote ? '<span class="day-note-icon" title="有备注">📝</span>' : ''}
     `;
 
     el.addEventListener('click', () => {
@@ -648,6 +652,7 @@ function updateCalendarTitle() {
 function renderMonthSummary(year, month) {
   const daysInMonth = getDaysInMonth(year, month);
   let recordCount = 0;
+  let noteCount = 0;
   let dominantDim = null;
   let dominantCount = 0;
   const dimCounts = {};
@@ -673,6 +678,11 @@ function renderMonthSummary(year, month) {
         }
       }
     }
+    // 统计有备注的日期
+    const dateNotes = state.notes[dateKey] || {};
+    if (Object.keys(dateNotes).length > 0) {
+      noteCount++;
+    }
   }
 
   const summaryEl = document.getElementById('month-summary-text');
@@ -681,7 +691,11 @@ function renderMonthSummary(year, month) {
   } else {
     const dimInfo = state.dimensions.find(d => d.id === dominantDim);
     const dimName = dimInfo ? dimInfo.name : dominantDim;
-    summaryEl.innerHTML = `本月记录了 ${recordCount} 天状态数据，<strong>${dimName}</strong> 占比最大。`;
+    let html = `本月记录了 ${recordCount} 天状态数据，<strong>${dimName}</strong> 占比最大。`;
+    if (noteCount > 0) {
+      html += ` 其中 ${noteCount} 天有备注记录。`;
+    }
+    summaryEl.innerHTML = html;
   }
 }
 
@@ -715,13 +729,6 @@ function showDateDetail(year, month, day) {
     summaryText = `${weakDims.join('、')}值得多加关注。`;
   } else {
     summaryText = '各维度表现均衡。';
-  }
-
-  // 检查是否有备注
-  const dateNotes = state.notes[dateKey] || {};
-  const noteDims = state.dimensions.filter(dim => dateNotes[dim.id]);
-  if (noteDims.length > 0) {
-    summaryText += `（${noteDims.map(d => d.name).join('、')}有备注记录）`;
   }
   document.getElementById('modal-summary').textContent = summaryText;
 
