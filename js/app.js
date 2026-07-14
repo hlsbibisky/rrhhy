@@ -656,6 +656,9 @@ function showDateDetail(year, month, day) {
   const record = state.records[dateKey];
   if (!record) return;
 
+  // 保存当前查看的日期，供修改记录使用
+  state.noDataDate = { year, month, day };
+
   document.getElementById('modal-date-title').textContent = `${year}年${month}月${day}日`;
 
   const strongDims = [];
@@ -707,6 +710,13 @@ function showDateDetail(year, month, day) {
 
 function hideModal() {
   document.getElementById('modal-overlay').classList.remove('active');
+}
+
+function editRecordFromModal() {
+  if (!state.noDataDate) return;
+  state.recordDate = { ...state.noDataDate };
+  hideModal();
+  switchPage('record');
 }
 
 // ==================== 无数据日期弹窗（居中） ====================
@@ -991,6 +1001,8 @@ function initEvents() {
 
   // 日期详情弹窗关闭
   document.getElementById('modal-close').addEventListener('click', hideModal);
+  document.getElementById('modal-close-btn').addEventListener('click', hideModal);
+  document.getElementById('modal-edit-record').addEventListener('click', editRecordFromModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) hideModal();
   });
