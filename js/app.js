@@ -821,6 +821,7 @@ function saveNote() {
   hideNoteModal();
   showToast('备注已保存');
   renderDimensions();
+  updateRatingButtons();
 }
 
 function updateNoteCharCount() {
