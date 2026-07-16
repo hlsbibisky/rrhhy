@@ -659,22 +659,25 @@ html, body {
 
 .cal-title-area {
   text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .cal-month-note-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: auto;
+  height: auto;
+  border-radius: 0;
   border: none;
-  background: var(--card-bg);
-  box-shadow: var(--shadow);
-  color: var(--text-light);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-lighter);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  margin-left: 8px;
+  transition: color 0.2s ease;
+  padding: 0;
 }
 
 .cal-month-note-btn.has-note {
@@ -687,7 +690,7 @@ html, body {
 }
 
 .cal-month-note-btn:active {
-  transform: scale(0.92);
+  color: var(--primary);
 }
 
 .monthly-note-content {
