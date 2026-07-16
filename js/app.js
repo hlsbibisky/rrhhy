@@ -850,6 +850,12 @@ function goRecordFromNoData() {
 }
 
 // ==================== 统计页 ====================
+// 评分映射：1(很弱)=-2, 2(较弱)=-1, 3(一般)=0, 4(较强)=1, 5(很强)=2
+function mapRatingToScore(rating) {
+  const mapping = { 1: -2, 2: -1, 3: 0, 4: 1, 5: 2 };
+  return mapping[rating] || 0;
+}
+
 function renderStats() {
   const year = state.statsYear;
   const month = state.statsMonth;
@@ -861,13 +867,20 @@ function renderStats() {
   const dimScores = {};
   const dimDays = {};
 
+  // 计算每个维度的原始分数（-2到+2系统）
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = formatDate(year, month, day);
     const record = state.records[dateKey];
     if (record) {
       recordCount++;
-      for (const [dimId, val] of Object.entries(record)) {
-        dimScores[dimId] = (dimScores[dimId] || 0) + val;
+      // 遍历所有维度，未选择的维度默认为0分
+      state.dimensions.forEach(dim => {
+        const rating = record[dim.id];
+        const score = rating ? mapRatingToScore(rating) : 0;
+        dimScores[dim.id] = (dimScores[dim.id] || 0) + score;
+      });
+      // 记录该维度被记录的天数
+      for (const dimId of Object.keys(record)) {
         dimDays[dimId] = (dimDays[dimId] || 0) + 1;
       }
     }
@@ -875,12 +888,24 @@ function renderStats() {
 
   document.getElementById('stats-days-number').textContent = recordCount;
 
-  const totalScore = Object.values(dimScores).reduce((a, b) => a + b, 0);
-  const dimPercentages = {};
+  // 将分数转换为正数：加上基准值（recordCount * 2）使所有分数为正
+  // 这样最弱的维度（全-2分）也会显示为正百分比
+  const baseline = recordCount * 2;
+  const adjustedScores = {};
+  let totalAdjusted = 0;
 
   state.dimensions.forEach(dim => {
-    const score = dimScores[dim.id] || 0;
-    dimPercentages[dim.id] = totalScore > 0 ? Math.round((score / totalScore) * 100) : 0;
+    const rawScore = dimScores[dim.id] || 0;
+    const adjusted = rawScore + baseline;
+    adjustedScores[dim.id] = adjusted;
+    totalAdjusted += adjusted;
+  });
+
+  // 计算百分比
+  const dimPercentages = {};
+  state.dimensions.forEach(dim => {
+    const adjusted = adjustedScores[dim.id] || 0;
+    dimPercentages[dim.id] = totalAdjusted > 0 ? Math.round((adjusted / totalAdjusted) * 100) : 0;
   });
 
   const dimsContainer = document.getElementById('stats-dimensions');
