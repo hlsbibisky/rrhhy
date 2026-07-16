@@ -652,49 +652,63 @@ function updateCalendarTitle() {
 function renderMonthSummary(year, month) {
   const daysInMonth = getDaysInMonth(year, month);
   let recordCount = 0;
-  let noteCount = 0;
-  let dominantDim = null;
-  let dominantCount = 0;
-  const dimCounts = {};
+  const dimScores = {};
 
+  // 使用新的评分系统计算每个维度的分数
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = formatDate(year, month, day);
     const record = state.records[dateKey];
     if (record) {
       recordCount++;
-      let maxVal = 0;
-      let maxDim = null;
-      for (const [dimId, val] of Object.entries(record)) {
-        if (val > maxVal) {
-          maxVal = val;
-          maxDim = dimId;
-        }
-        dimCounts[dimId] = (dimCounts[dimId] || 0) + 1;
-      }
-      if (maxDim) {
-        if (!dominantDim || dimCounts[maxDim] > dominantCount) {
-          dominantDim = maxDim;
-          dominantCount = dimCounts[maxDim];
-        }
-      }
-    }
-    // 统计有备注的日期
-    const dateNotes = state.notes[dateKey] || {};
-    if (Object.keys(dateNotes).length > 0) {
-      noteCount++;
+      // 遍历所有维度，未选择的维度默认为0分
+      state.dimensions.forEach(dim => {
+        const rating = record[dim.id];
+        const score = rating ? mapRatingToScore(rating) : 0;
+        dimScores[dim.id] = (dimScores[dim.id] || 0) + score;
+      });
     }
   }
 
   const summaryEl = document.getElementById('month-summary-text');
   if (recordCount === 0) {
-    summaryEl.innerHTML = '本月记录了 0 天状态数据，暂无占比最大。';
+    summaryEl.innerHTML = '本月记录了 0 天状态数据。';
   } else {
-    const dimInfo = state.dimensions.find(d => d.id === dominantDim);
-    const dimName = dimInfo ? dimInfo.name : dominantDim;
-    let html = `本月记录了 ${recordCount} 天状态数据，<strong>${dimName}</strong> 占比最大。`;
-    if (noteCount > 0) {
-      html += ` 其中 ${noteCount} 天有备注记录。`;
-    }
+    // 将分数转换为正数并计算百分比
+    const baseline = recordCount * 2;
+    const adjustedScores = {};
+    let totalAdjusted = 0;
+
+    state.dimensions.forEach(dim => {
+      const rawScore = dimScores[dim.id] || 0;
+      const adjusted = rawScore + baseline;
+      adjustedScores[dim.id] = adjusted;
+      totalAdjusted += adjusted;
+    });
+
+    // 找出占比最大和最小的维度
+    let maxDim = null;
+    let maxScore = -Infinity;
+    let minDim = null;
+    let minScore = Infinity;
+
+    state.dimensions.forEach(dim => {
+      const score = adjustedScores[dim.id] || 0;
+      if (score > maxScore) {
+        maxScore = score;
+        maxDim = dim.id;
+      }
+      if (score < minScore) {
+        minScore = score;
+        minDim = dim.id;
+      }
+    });
+
+    const maxDimInfo = state.dimensions.find(d => d.id === maxDim);
+    const minDimInfo = state.dimensions.find(d => d.id === minDim);
+    const maxDimName = maxDimInfo ? maxDimInfo.name : maxDim;
+    const minDimName = minDimInfo ? minDimInfo.name : minDim;
+
+    let html = `本月记录了 ${recordCount} 天状态数据，<strong>${maxDimName}</strong> 占比最大，<strong>${minDimName}</strong> 占比最小。`;
     summaryEl.innerHTML = html;
   }
 }
