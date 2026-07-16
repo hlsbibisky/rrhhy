@@ -661,6 +661,55 @@ html, body {
   text-align: center;
 }
 
+.cal-month-note-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.cal-month-note-btn.has-note {
+  color: var(--primary);
+}
+
+.cal-month-note-btn.has-note svg {
+  fill: var(--primary);
+  fill-opacity: 0.15;
+}
+
+.cal-month-note-btn:active {
+  transform: scale(0.92);
+}
+
+.monthly-note-content {
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--rating-bg);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-dark);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.monthly-note-content:empty::before {
+  content: "暂无备注";
+  color: var(--text-lighter);
+  font-style: italic;
+}
+
 .cal-month-title {
   display: block;
   font-size: 22px;

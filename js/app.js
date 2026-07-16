@@ -7,6 +7,7 @@ const STORAGE_KEY = 'rrhhy_data';
 const DIMENSIONS_KEY = 'rrhhy_dimensions';
 const THEME_KEY = 'rrhhy_theme';
 const NOTES_KEY = 'rrhhy_notes';
+const MONTHLY_NOTES_KEY = 'rrhhy_monthly_notes';
 
 // SVG 图标定义（默认维度使用）
 const DIM_ICONS = {
@@ -83,6 +84,7 @@ const state = {
   dimensions: [],
   records: {},
   notes: {},
+  monthlyNotes: {},  // 月度备注，key格式: "2026-7"
   currentRatings: {},
   selectedCalDate: null,   // {year, month, day}
   recordDate: null,        // {year, month, day} - 当前记录的目标日期
@@ -128,6 +130,14 @@ function loadData() {
       state.notes = JSON.parse(notes);
     }
   } catch (e) {}
+
+  // 加载月度备注
+  try {
+    const monthlyNotes = localStorage.getItem(MONTHLY_NOTES_KEY);
+    if (monthlyNotes) {
+      state.monthlyNotes = JSON.parse(monthlyNotes);
+    }
+  } catch (e) {}
 }
 
 function saveRecords() {
@@ -140,6 +150,10 @@ function saveDimensions() {
 
 function saveNotes() {
   localStorage.setItem(NOTES_KEY, JSON.stringify(state.notes));
+}
+
+function saveMonthlyNotes() {
+  localStorage.setItem(MONTHLY_NOTES_KEY, JSON.stringify(state.monthlyNotes));
 }
 
 // ==================== 工具函数 ====================
@@ -192,6 +206,7 @@ function downloadDataFile() {
     records: state.records,
     dimensions: state.dimensions,
     notes: state.notes,
+    monthlyNotes: state.monthlyNotes,
     theme: state.theme
   };
   const dataStr = JSON.stringify(data, null, 2);
@@ -228,6 +243,10 @@ function importData(file) {
       if (data.notes) {
         state.notes = data.notes;
         saveNotes();
+      }
+      if (data.monthlyNotes) {
+        state.monthlyNotes = data.monthlyNotes;
+        saveMonthlyNotes();
       }
       if (data.theme && THEME_LIST.includes(data.theme)) {
         applyTheme(data.theme);
@@ -556,6 +575,9 @@ function renderCalendar() {
 
   // 更新干支标题（未选日期时只显示年份）
   updateCalendarTitle();
+  
+  // 更新月度备注图标状态
+  updateCalendarNoteIcon();
 
   const grid = document.getElementById('calendar-grid');
   grid.innerHTML = '';
@@ -842,6 +864,86 @@ function updateNoteCharCount() {
   const textarea = document.getElementById('note-textarea');
   const count = textarea.value.length;
   document.getElementById('note-char-count').textContent = `${count}/150`;
+}
+
+// ==================== 月度备注 ====================
+function getMonthlyNoteKey(year, month) {
+  return `${year}-${month}`;
+}
+
+function showMonthlyNoteModal() {
+  const year = state.currentYear;
+  const month = state.currentMonth;
+  const key = getMonthlyNoteKey(year, month);
+  
+  document.getElementById('monthly-note-title').textContent = `${year}年${month}月 备注`;
+  
+  const content = state.monthlyNotes[key] || '';
+  document.getElementById('monthly-note-content').textContent = content;
+  document.getElementById('monthly-note-textarea').value = content;
+  updateMonthlyNoteCharCount();
+  
+  // 默认显示查看模式
+  document.getElementById('monthly-note-view').style.display = 'block';
+  document.getElementById('monthly-note-edit').style.display = 'none';
+  
+  document.getElementById('monthly-note-overlay').classList.add('active');
+}
+
+function hideMonthlyNoteModal() {
+  document.getElementById('monthly-note-overlay').classList.remove('active');
+}
+
+function editMonthlyNote() {
+  document.getElementById('monthly-note-view').style.display = 'none';
+  document.getElementById('monthly-note-edit').style.display = 'block';
+  document.getElementById('monthly-note-textarea').focus();
+}
+
+function cancelEditMonthlyNote() {
+  // 恢复查看模式
+  document.getElementById('monthly-note-view').style.display = 'block';
+  document.getElementById('monthly-note-edit').style.display = 'none';
+}
+
+function saveMonthlyNote() {
+  const year = state.currentYear;
+  const month = state.currentMonth;
+  const key = getMonthlyNoteKey(year, month);
+  
+  const textarea = document.getElementById('monthly-note-textarea');
+  const content = textarea.value.trim();
+  
+  if (content) {
+    state.monthlyNotes[key] = content;
+  } else {
+    delete state.monthlyNotes[key];
+  }
+  
+  saveMonthlyNotes();
+  hideMonthlyNoteModal();
+  showToast('月度备注已保存');
+  updateCalendarNoteIcon();
+}
+
+function updateMonthlyNoteCharCount() {
+  const textarea = document.getElementById('monthly-note-textarea');
+  const count = textarea.value.length;
+  document.getElementById('monthly-note-char-count').textContent = `${count}/500`;
+}
+
+function updateCalendarNoteIcon() {
+  const year = state.currentYear;
+  const month = state.currentMonth;
+  const key = getMonthlyNoteKey(year, month);
+  const hasNote = !!state.monthlyNotes[key];
+  
+  const btn = document.getElementById('cal-month-note-btn');
+  if (hasNote) {
+    btn.classList.add('has-note');
+  } else {
+    btn.classList.remove('has-note');
+  }
 }
 
 // ==================== 无数据日期弹窗（居中） ====================
@@ -1164,6 +1266,17 @@ function initEvents() {
     if (e.target === e.currentTarget) hideNoteModal();
   });
   document.getElementById('note-textarea').addEventListener('input', updateNoteCharCount);
+
+  // 月度备注弹窗
+  document.getElementById('cal-month-note-btn').addEventListener('click', showMonthlyNoteModal);
+  document.getElementById('monthly-note-edit-btn').addEventListener('click', editMonthlyNote);
+  document.getElementById('monthly-note-close-btn').addEventListener('click', hideMonthlyNoteModal);
+  document.getElementById('monthly-note-save-btn').addEventListener('click', saveMonthlyNote);
+  document.getElementById('monthly-note-cancel-btn').addEventListener('click', cancelEditMonthlyNote);
+  document.getElementById('monthly-note-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideMonthlyNoteModal();
+  });
+  document.getElementById('monthly-note-textarea').addEventListener('input', updateMonthlyNoteCharCount);
 
   // 无数据弹窗按钮
   document.getElementById('no-data-go-record').addEventListener('click', goRecordFromNoData);
