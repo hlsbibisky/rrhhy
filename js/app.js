@@ -1251,21 +1251,18 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   let summaryHTML = '';
   
   if (healthyDims.length > 0) {
-    healthyDims.forEach(d => {
-      summaryHTML += `${d.dim.name}的状态处于积极程度，比较稳定。<br>`;
-    });
+    const names = healthyDims.map(d => d.dim.name).join('和');
+    summaryHTML += `${names}处于积极程度，比较稳定。<br>`;
   }
   
   if (moderateDims.length > 0) {
-    moderateDims.forEach(d => {
-      summaryHTML += `${d.dim.name}的状态处于中性程度，稍有波动。<br>`;
-    });
+    const names = moderateDims.map(d => d.dim.name).join('和');
+    summaryHTML += `${names}处于中性程度，稍有波动。<br>`;
   }
   
   if (unhealthyDims.length > 0) {
-    unhealthyDims.forEach(d => {
-      summaryHTML += `${d.dim.name}波动较大，有过度倾向。<br>`;
-    });
+    const names = unhealthyDims.map(d => d.dim.name).join('和');
+    summaryHTML += `${names}波动较大，有过度倾向。`;
   }
   
   if (summaryHTML === '') {

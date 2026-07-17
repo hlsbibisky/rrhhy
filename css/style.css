@@ -1121,7 +1121,6 @@ html, body {
   border-radius: 10px;
   overflow: hidden;
   position: relative;
-  max-width: 150px;
 }
 
 .health-bar-fill {
