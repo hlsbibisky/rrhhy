@@ -1215,17 +1215,22 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   const maxHealthScore = 2; // 最大健康分数
   
   healthData.forEach(({ dim, healthScore }) => {
-    const percent = Math.max((healthScore / maxHealthScore) * 100, 5); // 最小5%
+    // 让颜色差异更明显：积极状态80-100%，中性状态40-70%，过度状态10-30%
+    let percent;
     let healthClass = 'healthy';
     
-    // 根据健康分数决定颜色
     if (healthScore >= 1.2) {
-      healthClass = 'healthy'; // 绿色：健康
+      healthClass = 'healthy'; // 绿色：积极
+      percent = 80 + (healthScore - 1.2) / 0.8 * 20; // 80-100%
     } else if (healthScore >= 0.4) {
-      healthClass = 'moderate'; // 黄色：中等
+      healthClass = 'moderate'; // 黄色：中性
+      percent = 40 + (healthScore - 0.4) / 0.8 * 30; // 40-70%
     } else {
-      healthClass = 'unhealthy'; // 红色：需关注
+      healthClass = 'unhealthy'; // 红色：过度
+      percent = 10 + healthScore / 0.4 * 20; // 10-30%
     }
+    
+    percent = Math.max(percent, 10); // 最小10%
     
     const item = document.createElement('div');
     item.className = 'health-bar-item';
@@ -1246,18 +1251,21 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   let summaryHTML = '';
   
   if (healthyDims.length > 0) {
-    const names = healthyDims.map(d => d.dim.name).join('、');
-    summaryHTML += `<strong>✓ 健康：</strong>${names}状态稳定，接近于积极状态。<br>`;
+    healthyDims.forEach(d => {
+      summaryHTML += `${d.dim.name}的状态处于积极程度，比较稳定。<br>`;
+    });
   }
   
   if (moderateDims.length > 0) {
-    const names = moderateDims.map(d => d.dim.name).join('、');
-    summaryHTML += `<strong>△ 中等：</strong>${names}稍有波动。<br>`;
+    moderateDims.forEach(d => {
+      summaryHTML += `${d.dim.name}的状态处于中性程度，稍有波动。<br>`;
+    });
   }
   
   if (unhealthyDims.length > 0) {
-    const names = unhealthyDims.map(d => d.dim.name).join('、');
-    summaryHTML += `<strong>✗ 需关注：</strong>${names}常处于过度状态。`;
+    unhealthyDims.forEach(d => {
+      summaryHTML += `${d.dim.name}波动较大，有过度倾向。<br>`;
+    });
   }
   
   if (summaryHTML === '') {
