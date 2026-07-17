@@ -1165,9 +1165,19 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
     // 垂直居中于线端点，水平方向紧贴 gap 间距
     label.style.transform = `translate(${isRight ? '0' : '-100%'}, -50%)`;
 
+    // 解析维度名，提取括号内容
+    let displayName = dim.name;
+    let parenthetical = '';
+    const match = dim.name.match(/^(.+?)（(.+?)）$/);
+    if (match) {
+      displayName = match[1];
+      parenthetical = match[2];
+    }
+
     label.innerHTML = `
       <span class="chart-label-pct" style="color: ${color}">${pct}%</span>
-      <span class="chart-label-name" style="color: ${color}">${dim.name}</span>
+      <span class="chart-label-name" style="color: ${color}">${displayName}</span>
+      ${parenthetical ? `<span class="chart-label-paren" style="color: ${color}">（${parenthetical}）</span>` : ''}
     `;
 
     labelsContainer.appendChild(label);
@@ -1210,40 +1220,33 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   // 按健康度排序（分数越高越健康）
   healthData.sort((a, b) => b.healthScore - a.healthScore);
   
-  // 渲染柱状图
+  // 渲染柱状图 - 所有柱子都延伸到100%，只用颜色区分状态
   healthBars.innerHTML = '';
-  const maxHealthScore = 2; // 最大健康分数
   
   healthData.forEach(({ dim, healthScore }) => {
-    // 让颜色差异更明显：积极状态80-100%，中性状态40-70%，过度状态10-30%
-    let percent;
     let healthClass = 'healthy';
     
+    // 根据健康分数决定颜色
     if (healthScore >= 1.2) {
       healthClass = 'healthy'; // 绿色：积极
-      percent = 80 + (healthScore - 1.2) / 0.8 * 20; // 80-100%
     } else if (healthScore >= 0.4) {
       healthClass = 'moderate'; // 黄色：中性
-      percent = 40 + (healthScore - 0.4) / 0.8 * 30; // 40-70%
     } else {
       healthClass = 'unhealthy'; // 红色：过度
-      percent = 10 + healthScore / 0.4 * 20; // 10-30%
     }
-    
-    percent = Math.max(percent, 10); // 最小10%
     
     const item = document.createElement('div');
     item.className = 'health-bar-item';
     item.innerHTML = `
       <div class="health-bar-label">${dim.name}</div>
       <div class="health-bar-track">
-        <div class="health-bar-fill ${healthClass}" style="width: ${percent}%"></div>
+        <div class="health-bar-fill ${healthClass}" style="width: 100%"></div>
       </div>
     `;
     healthBars.appendChild(item);
   });
   
-  // 生成文字总结
+  // 生成文字总结 - 按类别合并
   const healthyDims = healthData.filter(d => d.healthScore >= 1.2);
   const moderateDims = healthData.filter(d => d.healthScore >= 0.4 && d.healthScore < 1.2);
   const unhealthyDims = healthData.filter(d => d.healthScore < 0.4);
@@ -1251,17 +1254,17 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   let summaryHTML = '';
   
   if (healthyDims.length > 0) {
-    const names = healthyDims.map(d => d.dim.name).join('和');
+    const names = healthyDims.map(d => d.dim.name).join('、');
     summaryHTML += `${names}处于积极程度，比较稳定。<br>`;
   }
   
   if (moderateDims.length > 0) {
-    const names = moderateDims.map(d => d.dim.name).join('和');
+    const names = moderateDims.map(d => d.dim.name).join('、');
     summaryHTML += `${names}处于中性程度，稍有波动。<br>`;
   }
   
   if (unhealthyDims.length > 0) {
-    const names = unhealthyDims.map(d => d.dim.name).join('和');
+    const names = unhealthyDims.map(d => d.dim.name).join('、');
     summaryHTML += `${names}波动较大，有过度倾向。`;
   }
   
