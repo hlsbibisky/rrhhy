@@ -1220,19 +1220,23 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   // 按健康度排序（分数越高越健康）
   healthData.sort((a, b) => b.healthScore - a.healthScore);
   
-  // 渲染柱状图 - 所有柱子都延伸到100%，只用颜色区分状态
+  // 渲染柱状图 - 根据健康度决定长度，颜色区分状态
   healthBars.innerHTML = '';
   
   healthData.forEach(({ dim, healthScore }) => {
+    let percent;
     let healthClass = 'healthy';
     
-    // 根据健康分数决定颜色
+    // 根据健康分数决定颜色和长度
     if (healthScore >= 1.2) {
       healthClass = 'healthy'; // 绿色：积极
+      percent = 80 + (healthScore - 1.2) / 0.8 * 20; // 80-100%
     } else if (healthScore >= 0.4) {
       healthClass = 'moderate'; // 黄色：中性
+      percent = 40 + (healthScore - 0.4) / 0.8 * 30; // 40-70%
     } else {
       healthClass = 'unhealthy'; // 红色：过度
+      percent = 10 + healthScore / 0.4 * 20; // 10-30%
     }
     
     const item = document.createElement('div');
@@ -1240,7 +1244,7 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
     item.innerHTML = `
       <div class="health-bar-label">${dim.name}</div>
       <div class="health-bar-track">
-        <div class="health-bar-fill ${healthClass}" style="width: 100%"></div>
+        <div class="health-bar-fill ${healthClass}" style="width: ${percent}%"></div>
       </div>
     `;
     healthBars.appendChild(item);
