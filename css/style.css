@@ -1088,6 +1088,110 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ==================== 健康度分析 ==================== */
+.health-chart-wrapper {
+  margin-bottom: 16px;
+}
+
+.health-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.health-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.health-bar-label {
+  width: 60px;
+  font-size: 13px;
+  color: var(--text-medium);
+  flex-shrink: 0;
+}
+
+.health-bar-track {
+  flex: 1;
+  height: 24px;
+  background: var(--rating-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.health-bar-fill.healthy {
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+}
+
+.health-bar-fill.moderate {
+  background: linear-gradient(90deg, #FF9800, #FFA726);
+}
+
+.health-bar-fill.unhealthy {
+  background: linear-gradient(90deg, #F44336, #EF5350);
+}
+
+.health-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.health-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.health-dot.healthy {
+  background: #4CAF50;
+}
+
+.health-dot.moderate {
+  background: #FF9800;
+}
+
+.health-dot.unhealthy {
+  background: #F44336;
+}
+
+.health-summary {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-medium);
+  padding: 12px;
+  background: var(--rating-bg);
+  border-radius: 8px;
+}
+
+.health-summary strong {
+  color: var(--text-dark);
+}
+
 /* ==================== 弹窗（底部弹出） ==================== */
 .modal-overlay {
   position: fixed;

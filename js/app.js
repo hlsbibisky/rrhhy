@@ -1051,6 +1051,9 @@ function renderStats() {
   });
 
   renderDonutChart(sortedDims, dimPercentages, recordCount);
+  
+  // 计算并渲染健康度分析
+  renderHealthChart(dimScores, dimDays, recordCount);
 
   // 数据管理按钮事件
   const statsExportBtn = document.getElementById('stats-export-btn');
@@ -1175,6 +1178,91 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
 
   // 移除底部图例
   document.getElementById('chart-legend').innerHTML = '';
+}
+
+// ==================== 健康度分析 ====================
+function renderHealthChart(dimScores, dimDays, recordCount) {
+  const healthBars = document.getElementById('health-bars');
+  const healthSummary = document.getElementById('health-summary');
+  
+  if (recordCount === 0) {
+    healthBars.innerHTML = '<div style="text-align:center;color:var(--text-lighter);padding:20px;">暂无数据</div>';
+    healthSummary.innerHTML = '';
+    return;
+  }
+  
+  // 计算每个维度的健康度（平均分的绝对值）
+  const healthData = [];
+  state.dimensions.forEach(dim => {
+    const totalScore = dimScores[dim.id] || 0;
+    const days = dimDays[dim.id] || 0;
+    const avgScore = days > 0 ? totalScore / days : 0;
+    const deviation = Math.abs(avgScore); // 偏离0的程度
+    
+    healthData.push({
+      dim,
+      avgScore,
+      deviation,
+      days
+    });
+  });
+  
+  // 按健康度排序（偏差越小越健康）
+  healthData.sort((a, b) => a.deviation - b.deviation);
+  
+  // 渲染柱状图
+  healthBars.innerHTML = '';
+  const maxDeviation = 2; // 最大可能偏差
+  
+  healthData.forEach(({ dim, deviation }) => {
+    const percent = Math.min((deviation / maxDeviation) * 100, 100);
+    let healthClass = 'healthy';
+    if (deviation >= 1.0) {
+      healthClass = 'unhealthy';
+    } else if (deviation >= 0.5) {
+      healthClass = 'moderate';
+    }
+    
+    const item = document.createElement('div');
+    item.className = 'health-bar-item';
+    item.innerHTML = `
+      <div class="health-bar-label">${dim.name}</div>
+      <div class="health-bar-track">
+        <div class="health-bar-fill ${healthClass}" style="width: ${percent}%">
+          ${percent > 15 ? deviation.toFixed(1) : ''}
+        </div>
+      </div>
+    `;
+    healthBars.appendChild(item);
+  });
+  
+  // 生成文字总结
+  const healthyDims = healthData.filter(d => d.deviation < 0.5);
+  const moderateDims = healthData.filter(d => d.deviation >= 0.5 && d.deviation < 1.0);
+  const unhealthyDims = healthData.filter(d => d.deviation >= 1.0);
+  
+  let summaryHTML = '';
+  
+  if (healthyDims.length > 0) {
+    const names = healthyDims.map(d => d.dim.name).join('、');
+    summaryHTML += `<strong>✓ 健康：</strong>${names}，状态稳定接近"一般"。<br>`;
+  }
+  
+  if (moderateDims.length > 0) {
+    const names = moderateDims.map(d => d.dim.name).join('、');
+    summaryHTML += `<strong>△ 中等：</strong>${names}，稍有波动。<br>`;
+  }
+  
+  if (unhealthyDims.length > 0) {
+    const names = unhealthyDims.map(d => d.dim.name).join('、');
+    summaryHTML += `<strong>✗ 需关注：</strong>${names}，经常处于极端状态。`;
+  }
+  
+  if (summaryHTML === '') {
+    summaryHTML = '暂无足够数据进行分析。';
+  }
+  
+  healthSummary.innerHTML = summaryHTML;
 }
 
 // ==================== Toast 提示 ====================
