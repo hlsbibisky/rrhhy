@@ -1103,18 +1103,17 @@ html, body {
 .health-bars {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .health-bar-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
 .health-bar-label {
-  min-width: 80px;
-  max-width: 100px;
+  width: 120px;
   font-size: 13px;
   color: var(--text-medium);
   flex-shrink: 0;

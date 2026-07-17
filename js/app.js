@@ -1193,11 +1193,9 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
 // ==================== 健康度分析 ====================
 function renderHealthChart(dimScores, dimDays, recordCount) {
   const healthBars = document.getElementById('health-bars');
-  const healthSummary = document.getElementById('health-summary');
   
   if (recordCount === 0) {
     healthBars.innerHTML = '<div style="text-align:center;color:var(--text-lighter);padding:20px;">暂无数据</div>';
-    healthSummary.innerHTML = '';
     return;
   }
   
@@ -1249,34 +1247,6 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
     `;
     healthBars.appendChild(item);
   });
-  
-  // 生成文字总结 - 按类别合并
-  const healthyDims = healthData.filter(d => d.healthScore >= 1.2);
-  const moderateDims = healthData.filter(d => d.healthScore >= 0.4 && d.healthScore < 1.2);
-  const unhealthyDims = healthData.filter(d => d.healthScore < 0.4);
-  
-  let summaryHTML = '';
-  
-  if (healthyDims.length > 0) {
-    const names = healthyDims.map(d => d.dim.name).join('、');
-    summaryHTML += `${names}处于积极程度，比较稳定。<br>`;
-  }
-  
-  if (moderateDims.length > 0) {
-    const names = moderateDims.map(d => d.dim.name).join('、');
-    summaryHTML += `${names}处于中性程度，稍有波动。<br>`;
-  }
-  
-  if (unhealthyDims.length > 0) {
-    const names = unhealthyDims.map(d => d.dim.name).join('、');
-    summaryHTML += `${names}波动较大，有过度倾向。`;
-  }
-  
-  if (summaryHTML === '') {
-    summaryHTML = '暂无足够数据进行分析。';
-  }
-  
-  healthSummary.innerHTML = summaryHTML;
 }
 
 // ==================== Toast 提示 ====================
