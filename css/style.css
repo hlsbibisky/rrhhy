@@ -1152,7 +1152,7 @@ html, body {
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-top: 12px;
+  margin-top: 24px;
   font-size: 12px;
   color: var(--text-light);
 }
