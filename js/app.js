@@ -1104,9 +1104,9 @@ function renderDonutChart(sortedDims, dimPercentages, recordCount) {
   // 画饼图扇区 + 引导线
   let startAngle = -Math.PI / 2;
   const sliceInfo = [];
-  const elbowDist = outerR + 14;   // 拐点距圆心
-  const hExtend = 28;              // 水平延伸长度
-  const gap = 8;                   // 线端到文字的间距（约0.2cm）
+  const elbowDist = outerR + 10;   // 拐点距圆心
+  const hExtend = 20;              // 水平延伸长度
+  const gap = 5;                   // 线端到文字的间距
 
   activeDims.forEach((dim, i) => {
     const pct = dimPercentages[dim.id] || 0;
@@ -1224,25 +1224,26 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   // 按健康度排序（分数越高越健康）
   healthData.sort((a, b) => b.healthScore - a.healthScore);
   
-  // 渲染柱状图 - 根据相对健康度决定颜色和长度
+  // 渲染柱状图 - 根据排名决定状态
   healthBars.innerHTML = '';
+  const total = healthData.length;
   
-  healthData.forEach(({ dim, healthScore }) => {
+  healthData.forEach(({ dim, healthScore }, index) => {
     let percent;
     let healthClass = 'healthy';
     
-    // 根据与平均值的比较决定状态
-    const diff = healthScore - avgHealthScore;
+    // 按排名分配：前40%积极，中间30%中性，后30%过度
+    const rank = index / total; // 0-1，0是最健康
     
-    if (diff >= 0.15) {
-      healthClass = 'healthy'; // 绿色：积极（高于平均）
-      percent = 80 + Math.min((diff - 0.15) / 0.5 * 20, 20); // 80-100%
-    } else if (diff >= -0.15) {
-      healthClass = 'moderate'; // 黄色：中性（接近平均）
-      percent = 40 + (diff + 0.15) / 0.3 * 30; // 40-70%
+    if (rank < 0.4) {
+      healthClass = 'healthy'; // 绿色：积极（前40%）
+      percent = 80 + (0.4 - rank) / 0.4 * 20; // 80-100%
+    } else if (rank < 0.7) {
+      healthClass = 'moderate'; // 黄色：中性（中间30%）
+      percent = 40 + (0.7 - rank) / 0.3 * 30; // 40-70%
     } else {
-      healthClass = 'unhealthy'; // 红色：过度（低于平均）
-      percent = 10 + Math.max((diff + 0.5) / 0.4 * 20, 0); // 10-30%
+      healthClass = 'unhealthy'; // 红色：过度（后30%）
+      percent = 10 + (1 - rank) / 0.3 * 20; // 10-30%
     }
     
     const item = document.createElement('div');
