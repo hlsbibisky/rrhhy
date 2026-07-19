@@ -1199,58 +1199,40 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
     return;
   }
   
-  // 计算每个维度的正负天数
+  // 计算每个维度的平均分
   const healthData = [];
   state.dimensions.forEach(dim => {
     const totalScore = dimScores[dim.id] || 0;
     const days = dimDays[dim.id] || 0;
     const avgScore = days > 0 ? totalScore / days : 0;
     
-    // 计算正负天数（需要从原始记录中统计）
-    let positiveDays = 0;  // 较强(+1)或很强(+2)的天数
-    let negativeDays = 0;  // 较弱(-1)或很弱(-2)的天数
-    
-    for (let day = 1; day <= getDaysInMonth(state.statsYear, state.statsMonth); day++) {
-      const dateKey = formatDate(state.statsYear, state.statsMonth, day);
-      const record = state.records[dateKey];
-      if (record && record[dim.id]) {
-        const rating = record[dim.id];
-        if (rating >= 4) positiveDays++;  // 较强或很强
-        else if (rating <= 2) negativeDays++;  // 较弱或很弱
-      }
-    }
-    
     healthData.push({
       dim,
       avgScore,
-      positiveDays,
-      negativeDays,
       days
     });
   });
   
-  // 按健康度排序（正天数多优先，负天数多排后）
-  healthData.sort((a, b) => (b.positiveDays - b.negativeDays) - (a.positiveDays - a.negativeDays));
+  // 按健康度排序（分数越高越健康）
+  healthData.sort((a, b) => b.avgScore - a.avgScore);
   
-  // 渲染柱状图 - 基于正负天数判断状态
+  // 渲染柱状图 - 基于平均分判断状态
   healthBars.innerHTML = '';
   
-  healthData.forEach(({ dim, positiveDays, negativeDays, days }) => {
+  healthData.forEach(({ dim, avgScore }) => {
     let percent;
     let healthClass = 'moderate'; // 默认中性
     
-    // 判断状态
-    if (positiveDays >= 3) {
-      healthClass = 'healthy'; // 绿色：积极
-      percent = 80 + (positiveDays - 3) / 4 * 20; // 80-100%
-    } else if (negativeDays >= 3) {
-      healthClass = 'unhealthy'; // 红色：过度
-      percent = 10 + (4 - negativeDays) / 4 * 20; // 10-30%
+    // 基于平均分判断状态
+    if (avgScore >= 0.5) {
+      healthClass = 'healthy'; // 绿色：积极（整体偏强）
+      percent = 80 + Math.min((avgScore - 0.5) / 1.5 * 20, 20); // 80-100%
+    } else if (avgScore <= -0.5) {
+      healthClass = 'unhealthy'; // 红色：过度（整体偏弱）
+      percent = 10 + Math.min((-0.5 - avgScore) / 1.5 * 20, 20); // 10-30%
     } else {
-      healthClass = 'moderate'; // 黄色：中性（默认）
-      // 在中性范围内，根据正负倾向调整长度
-      const tendency = positiveDays - negativeDays; // -2到+2
-      percent = 50 + tendency / 2 * 20; // 40-60%
+      healthClass = 'moderate'; // 黄色：中性（整体平衡）
+      percent = 40 + (avgScore + 0.5) / 1.0 * 20; // 40-60%
     }
     
     const item = document.createElement('div');
