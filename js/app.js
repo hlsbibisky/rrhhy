@@ -1201,6 +1201,8 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
   
   // 计算每个维度的健康度（反向：越接近0越健康）
   const healthData = [];
+  let totalHealthScore = 0;
+  
   state.dimensions.forEach(dim => {
     const totalScore = dimScores[dim.id] || 0;
     const days = dimDays[dim.id] || 0;
@@ -1213,28 +1215,34 @@ function renderHealthChart(dimScores, dimDays, recordCount) {
       healthScore,
       days
     });
+    totalHealthScore += healthScore;
   });
+  
+  // 计算平均健康度
+  const avgHealthScore = totalHealthScore / state.dimensions.length;
   
   // 按健康度排序（分数越高越健康）
   healthData.sort((a, b) => b.healthScore - a.healthScore);
   
-  // 渲染柱状图 - 根据健康度决定长度，颜色区分状态
+  // 渲染柱状图 - 根据相对健康度决定颜色和长度
   healthBars.innerHTML = '';
   
   healthData.forEach(({ dim, healthScore }) => {
     let percent;
     let healthClass = 'healthy';
     
-    // 根据健康分数决定颜色和长度
-    if (healthScore >= 1.2) {
-      healthClass = 'healthy'; // 绿色：积极
-      percent = 80 + (healthScore - 1.2) / 0.8 * 20; // 80-100%
-    } else if (healthScore >= 0.4) {
-      healthClass = 'moderate'; // 黄色：中性
-      percent = 40 + (healthScore - 0.4) / 0.8 * 30; // 40-70%
+    // 根据与平均值的比较决定状态
+    const diff = healthScore - avgHealthScore;
+    
+    if (diff >= 0.15) {
+      healthClass = 'healthy'; // 绿色：积极（高于平均）
+      percent = 80 + Math.min((diff - 0.15) / 0.5 * 20, 20); // 80-100%
+    } else if (diff >= -0.15) {
+      healthClass = 'moderate'; // 黄色：中性（接近平均）
+      percent = 40 + (diff + 0.15) / 0.3 * 30; // 40-70%
     } else {
-      healthClass = 'unhealthy'; // 红色：过度
-      percent = 10 + healthScore / 0.4 * 20; // 10-30%
+      healthClass = 'unhealthy'; // 红色：过度（低于平均）
+      percent = 10 + Math.max((diff + 0.5) / 0.4 * 20, 0); // 10-30%
     }
     
     const item = document.createElement('div');
